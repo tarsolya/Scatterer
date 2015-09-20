@@ -16,8 +16,8 @@ Shader "Sky/AtmosphereGhoss"
 	    	ZWrite off
 	    	Fog { Mode Off }
 	    	Cull Off
-	    	Blend SrcAlpha OneMinusSrcAlpha
-//			Blend One One
+//	    	Blend SrcAlpha OneMinusSrcAlpha
+			Blend One One
 	    
 			CGPROGRAM			
 // Upgrade NOTE: excluded shader from DX11 and Xbox360; has structs without semantics (struct v2f members screenPos)
@@ -268,7 +268,7 @@ Shader "Sky/AtmosphereGhoss"
 //				return float4(hdr(reflectedLight +  inscatter),_global_alpha*visib);
 //				return float4(hdr(groundColor * extinction +  inscatter),_global_alpha*visib);
 				
-				return float4(hdr(inscatter),_global_alpha*visib);
+				return float4(hdr(inscatter)*_global_alpha*visib,1);
 //				return float4(depthOutput,depthOutput,depthOutput,_global_alpha*visib);
 //				return float4(float3(i.interpolatedRay),1.0);
 

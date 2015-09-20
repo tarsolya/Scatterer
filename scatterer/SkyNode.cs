@@ -26,9 +26,9 @@ namespace scatterer
 		
 		[Persistent] public bool forceOFFaniso;
 		
-		SimplePostProcessCube hp;
-		GameObject atmosphereMesh;
-		MeshRenderer atmosphereMeshrenderer;
+		SimplePostProcessCube hp,hp2;
+		GameObject atmosphereMesh,atmosphereExtinctionMesh;
+		MeshRenderer atmosphereMeshRenderer,atmosphereExtinctionMeshRenderer;
 		
 		//		[Persistent] public bool UIvisible = false;
 		[Persistent] public bool displayInterpolatedVariables = false;
@@ -160,7 +160,7 @@ namespace scatterer
 		//scatter coefficient for mie
 		Vector3 BETA_MSca = new Vector3(4e-3f,4e-3f,4e-3f);
 		
-		public Material m_atmosphereMaterial;
+		public Material m_atmosphereMaterial,m_atmosphereExtinctionMaterial;
 		Material m_skyMaterialScaled;
 		Material m_skyExtinction;
 						
@@ -252,7 +252,8 @@ namespace scatterer
 
 			
 			m_atmosphereMaterial = ShaderTool.GetMatFromShader2 ("CompiledAtmosphericScatter.shader");
-			
+			m_atmosphereExtinctionMaterial = ShaderTool.GetMatFromShader2 ("CompiledAtmosphericScatterExtinction.shader");
+			m_atmosphereExtinctionMaterial.renderQueue = m_atmosphereMaterial.renderQueue - 1;
 			
 			CurrentPQS = parentCelestialBody.pqsController;
 			testPQS = parentCelestialBody.pqsController;
@@ -335,8 +336,15 @@ namespace scatterer
 			hp = new SimplePostProcessCube (10000, m_atmosphereMaterial);
 			atmosphereMesh = hp.GameObject;
 			atmosphereMesh.layer = 15;
-			atmosphereMeshrenderer = hp.GameObject.GetComponent<MeshRenderer>();
-			atmosphereMeshrenderer.material = m_atmosphereMaterial;
+			atmosphereMeshRenderer = hp.GameObject.GetComponent<MeshRenderer>();
+			atmosphereMeshRenderer.material = m_atmosphereMaterial;
+
+			hp2 = new SimplePostProcessCube (10500, m_atmosphereExtinctionMaterial);
+			atmosphereExtinctionMesh = hp2.GameObject;
+			atmosphereExtinctionMesh.layer = 15;
+			atmosphereExtinctionMeshRenderer = hp2.GameObject.GetComponent<MeshRenderer>();
+			atmosphereExtinctionMeshRenderer.material = m_atmosphereExtinctionMaterial;
+
 			
 			celestialBodies = (CelestialBody[])CelestialBody.FindObjectsOfType(typeof(CelestialBody));	
 		}
@@ -348,12 +356,20 @@ namespace scatterer
 			atmosphereMesh.transform.position = farCamera.transform.position + postDist * farCamera.transform.forward;
 			atmosphereMesh.transform.localRotation = farCamera.transform.localRotation;
 			atmosphereMesh.transform.rotation = farCamera.transform.rotation;
-			
+
+			atmosphereExtinctionMesh.transform.position = farCamera.transform.position + postDist * farCamera.transform.forward;
+			atmosphereExtinctionMesh.transform.localRotation = farCamera.transform.localRotation;
+			atmosphereExtinctionMesh.transform.rotation = farCamera.transform.rotation;
+
 			//adding post processing to camera
 			if ((!inScaledSpace) && (!MapView.MapIsEnabled)) {
 				if (postprocessingEnabled) {
+
 					InitPostprocessMaterial (m_atmosphereMaterial);
 					UpdatePostProcessMaterial (m_atmosphereMaterial);
+
+					InitPostprocessMaterial (m_atmosphereExtinctionMaterial);
+					UpdatePostProcessMaterial (m_atmosphereExtinctionMaterial);
 					
 					//					if (scaledSpaceCamera.gameObject.GetComponent<scatterPostprocess> () != null) {
 					//						//						print ("ScaledSpaceCamera scatterPostprocess!=null");
@@ -596,7 +612,8 @@ namespace scatterer
 
 			
 			
-			atmosphereMeshrenderer.enabled = (!inScaledSpace) && (postprocessingEnabled);
+			atmosphereMeshRenderer.enabled = (!inScaledSpace) && (postprocessingEnabled);
+			atmosphereExtinctionMeshRenderer.enabled = (!inScaledSpace) && (postprocessingEnabled) && (m_manager.GetCore().extinctionEnabled);
 			
 			
 			//this snippet fixes the problem with the moon rendering over the atmosphere but behind the planet
@@ -1122,7 +1139,7 @@ namespace scatterer
 			{
 				farCamera.gameObject.AddComponent(typeof(scatterPostprocess));
 			}
-			//			atmosphereMeshrenderer.enabled = true;
+			//			atmosphereMeshRenderer.enabled = true;
 			postprocessingEnabled = true;
 		}
 		
@@ -1140,7 +1157,7 @@ namespace scatterer
 			
 			
 			//Component.Destroy(cams[cam+1].gameObject.GetComponent<scatterPostprocess>());
-			//			atmosphereMeshrenderer.enabled = false;
+			//			atmosphereMeshRenderer.enabled = false;
 			postprocessingEnabled = false;
 		}
 		
@@ -1257,8 +1274,11 @@ namespace scatterer
 			Component.Destroy (skyExtinctMR);
 			Destroy (skyExtinctObject);
 
-			Component.Destroy (atmosphereMeshrenderer);
+			Component.Destroy (atmosphereMeshRenderer);
 			Destroy (atmosphereMesh);
+			Component.Destroy (atmosphereExtinctionMeshRenderer);
+			Destroy (atmosphereExtinctionMesh);
+
 			//Destroy (hp);
 		}
 		
